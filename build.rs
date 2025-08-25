@@ -10,6 +10,7 @@ fn main() {
   println!("cargo:rerun-if-changed=.git/HEAD");
   println!("cargo:rerun-if-changed=src/amberol.gresource.xml");
   println!("cargo:rerun-if-changed=po/");
+  println!("cargo:rerun-if-changed=data/");
 
   let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
   let src_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
@@ -41,6 +42,7 @@ fn main() {
   );
 
   compile_translations(&out_dir, &src_dir, gettext_package);
+  compile_gschemas(&out_dir, &src_dir, application_id);
   compile_gresources(&out_dir, &src_dir);
 }
 
@@ -94,6 +96,33 @@ fn compile_translations(out_dir: &Path, src_dir: &Path, package: &str) {
         }
       }
     }
+  }
+}
+
+/// Compiles GSettings schemas
+fn compile_gschemas(out_dir: &Path, src_dir: &Path, application_id: &str) {
+  let schema_filename = format!("{}.gschema.xml", application_id);
+  let schema_file = src_dir.join("data").join(&schema_filename);
+
+  if !schema_file.exists() {
+    return;
+  }
+
+  // Create output directory and copy schema
+  let schemas_dir = out_dir.join("schemas");
+  fs::create_dir_all(&schemas_dir).expect("Failed to create schemas directory");
+  fs::copy(&schema_file, schemas_dir.join(&schema_filename)).expect("Failed to copy schema");
+
+  // Compile schemas
+  if Command::new("glib-compile-schemas")
+    .arg(&schemas_dir)
+    .status()
+    .is_ok_and(|s| s.success())
+  {
+    println!(
+      "cargo:rustc-env=GSETTINGS_SCHEMA_DIR={}",
+      schemas_dir.display()
+    );
   }
 }
 
