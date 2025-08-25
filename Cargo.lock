@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "amberol"
-version = "0.1.0-2025.1"
+version = "0.1.0"
 dependencies = [
  "ashpd",
  "async-channel",
