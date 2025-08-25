@@ -1,4 +1,4 @@
-**An enhanced, self-contained fork of the Amberol music player.**
+# **An enhanced, self-contained fork of the Amberol music player.**
 
 This project is a fork of the beautiful and simple [Amberol music player](https://gitlab.gnome.org/World/amberol). The primary goal of this fork is to simplify the build process, create a single self-contained binary, and to serve as a platform for adding new features and quality-of-life improvements.
 
