@@ -1,11 +1,9 @@
-# SPDX-FileCopyrightText: 2022  Emmanuele Bassi
-# SPDX-License-Identifier: CC0-1.0
+newline_style = "Unix"
+tab_spaces = 2
 #condense_wildcard_suffixes = true
 #format_code_in_doc_comments = true
 #group_imports = "StdExternalCrate"
 #imports_granularity = "Crate"
-newline_style = "Unix"
 #normalize_comments = true
 #normalize_doc_attributes = true
 #wrap_comments = true
-tab_spaces = 2
