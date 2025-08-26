@@ -26,9 +26,3 @@ To create a single, portable executable, all application resources are now embed
 ## Patches and Quality-of-Life Improvements
 
 This fork includes a variety of patches and fixes that have not been merged into the mainline Amberol project. These changes address various minor issues and improve the overall user experience.
-
-## Future Plans (TODO)
-
-The following features are planned for future releases:
-
-*   **Discord Rich Presence (RPC) Integration:** A key planned feature is the integration of Discord RPC to display the currently playing song as your Discord status.
