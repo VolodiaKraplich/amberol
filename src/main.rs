@@ -20,13 +20,18 @@ use std::env;
 
 const APPLICATION_ID: &str = env!("APPLICATION_ID");
 const GETTEXT_PACKAGE: &str = env!("GETTEXT_PACKAGE");
-const PROFILE: &str = env!("PROFILE");
 
 use gettextrs::{LocaleCategory, bind_textdomain_codeset, setlocale, textdomain};
 use gtk::{gio, glib, prelude::*};
-use log::{LevelFilter, debug};
 
 use self::application::Application;
+
+/// Sets up the application environment
+fn setup_environment() {
+  unsafe {
+    env::set_var("RUST_LOG", "info");
+  }
+}
 
 /// Calls the C function `bindtextdomain` from `gettext-sys` to bind to GResource.
 fn bind_textdomain_to_gresource(domain: &str) {
@@ -40,51 +45,60 @@ fn bind_textdomain_to_gresource(domain: &str) {
   }
 }
 
-fn main() -> glib::ExitCode {
-  let mut builder = pretty_env_logger::formatted_builder();
-  if PROFILE == "development" {
-    builder.filter(Some("amberol"), LevelFilter::Debug);
-  } else {
-    builder.filter(Some("amberol"), LevelFilter::Info);
-  }
-  builder.init();
-
-  // Register embedded resources
-  debug!("Loading embedded resources");
-  gio::resources_register_include!("amberol.gresource")
-    .expect("Failed to register GResource bundle.");
-
-  // Set up gettext to use embedded translations
-  debug!("Setting up locale data");
+/// Sets up internationalization support
+fn setup_i18n() {
   setlocale(LocaleCategory::LcAll, "");
-
-  // Use our helper function to bind to GResource
   bind_textdomain_to_gresource(GETTEXT_PACKAGE);
+  bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8").ok();
+  textdomain(GETTEXT_PACKAGE).ok();
+}
 
-  bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8")
-    .expect("Unable to set the text domain encoding");
-  textdomain(GETTEXT_PACKAGE).expect("Unable to switch to the text domain");
-
-  // Set up environment variables for PulseAudio
-  debug!("Setting up pulseaudio environment");
+/// Configures PulseAudio environment variables
+fn setup_audio_environment() {
   let app_id = APPLICATION_ID.trim_end_matches(".Devel");
   unsafe {
     env::set_var("PULSE_PROP_application.icon_name", app_id);
     env::set_var("PULSE_PROP_application.name", "Amberol");
     env::set_var("PULSE_PROP_media.role", "music");
   }
+}
 
-  // Initialize application metadata
-  debug!("Setting up application (profile: {})", &PROFILE);
+/// Loads application resources
+fn setup_resources() -> Result<()> {
+  gio::resources_register_include!("amberol.gresource")
+    .expect("Failed to register GResource bundle.");
+  Ok(())
+}
+
+/// Sets up GTK and GStreamer
+fn setup_frameworks() -> Result<()> {
   glib::set_application_name("Amberol");
   glib::set_program_name(Some("amberol"));
-
-  // Initialize GStreamer
-  gst::init().expect("Failed to initialize GStreamer");
-
-  // Create the main GTK context and run the application
-  let ctx = glib::MainContext::default();
-  let _guard = ctx.acquire().unwrap();
-
-  Application::new().run()
+  gst::init()?;
+  Ok(())
 }
+
+fn main() -> glib::ExitCode {
+  setup_environment();
+  setup_i18n();
+  setup_audio_environment();
+
+  if setup_resources().is_err() {
+    return glib::ExitCode::FAILURE;
+  }
+
+  if setup_frameworks().is_err() {
+    return glib::ExitCode::FAILURE;
+  }
+
+  let ctx = glib::MainContext::default();
+  let _guard = ctx
+    .acquire()
+    .unwrap_or_else(|_| panic!("Failed to acquire main context"));
+
+  let app = Application::new();
+
+  app.run()
+}
+
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
